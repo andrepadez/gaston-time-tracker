@@ -1,12 +1,12 @@
 {
   "name": "gaston-time-tracker",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "time-tracker for gaston",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "andre.padez@gmail.com",
   "license": "ISC",
   "dependencies": {
     "bluebird": "^2.9.34",
@@ -14,5 +14,14 @@
     "mkdirp": "^0.5.1",
     "npmlog": "^1.2.1",
     "shelljs": "^0.5.1"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrepadez/gaston-time-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andrepadez/gaston-time-tracker/issues"
+  },
+  "homepage": "https://github.com/andrepadez/gaston-time-tracker#readme"
 }
