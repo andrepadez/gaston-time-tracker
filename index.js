@@ -3,72 +3,84 @@ var log = require('npmlog')
   , Promise = require('bluebird')
   , mkdirp = Promise.promisify( require('mkdirp') )
   , fs = require('graceful-fs')
-  , config = require('../config')
   , sh = require('shelljs')
   , sessionId = Math.floor( Math.random() * 1000000)
   , userName = getUserName()
-  , trackTime = 0
-  , trackerFile
+  , sessionData
   , trackData
+  , trackerFile
+  , config;
+
+Promise.promisifyAll(fs);
 
 
 var Tracker = module.exports = {
-  init: function(){
+  init: function(cfg){
+    config = cfg;
+
     setup()
       .then(trackit);
     
-    log.info('tracker', 'tracking time for this issue (p to pause or resume)');
-    
-    process.on('SIGINT', function(){
-      console.log();
-      log.info('tracker', 'tracked', getProperTime(trackTime));
-      process.exit(0);
-    });
+    log.info('time-tracker', 'tracking time for this issue (p to pause or resume)');
   }, 
 
   toggle: function(){
     Tracker.isPaused = !Tracker.isPaused;
     if(Tracker.isPaused){
-      log.info('tracker', 'Time Tracking is paused');
+      log.info('time-tracker', 'Time Tracking is paused');
     } else {
-      log.info('tracker', 'Time Tracking resumed');
+      log.info('time-tracker', 'Time Tracking resumed');
       trackit();
     }
+  },
+  save: function(){
+    console.log('saving');
+    return writeToFile();
   }
 };
 
-
 var setup = function(){
+  sessionData = {
+    name: config.gitUser,
+    branch: config.branch,
+    start: new Date(),
+    time: 0
+  };
+
   return config.branchPromise
     .then(function(){
       var timeTrackingDir = path.join(config.basePath, 'time-tracking');
-      trackerFile = path.join(timeTrackingDir, config.branch + '.log');
-      fs.existsAsync( trackerFile )
-        .then(function(exists){
-          if(exists){
-            trackData = require(trackerFile);
-          } else {
-            mkdirp( timeTrackingDir )
-            trackData = [];
-            writeToFile(trackerFile);
-          }
-        });
+      trackerFile = path.join(timeTrackingDir, config.branch + '.json');
+      fs.exists( trackerFile, function(exists){
+        if(exists){ console.log('requiring')
+          trackData = require(trackerFile);console.log('trackData', trackData)
+          trackData.push(sessionData); 
+        } else {
+          mkdirp( timeTrackingDir )
+            .then(function(){
+              trackData = [];
+              trackData.push(sessionData);
+              return writeToFile()
+            });
+        }
+      });
     });
 }
 
 var trackit = function(){
-  var sessionData = trackData.filter(function(item){
-    return sessionId = item.sessionId;
-  });
+
   (function tick(){
     setTimeout(function(){
       if(!Tracker.isPaused){
-        trackTime++;
-        var message = 'tracked: ' + getProperTime(trackTime);
+        sessionData.time++;
+        var message = 'tracked: ' + getProperTime(sessionData.time);
         process.stdout.clearLine();
         process.stdout.cursorTo(0);
         process.stdout.write(message + '     ')
         tick();
+        if(sessionData.time%10 === 0){
+          writeToFile();
+        }
       }
     }, 1000);
   })();
@@ -85,7 +97,7 @@ var getProperTime = function(secs){
 };
 
 var writeToFile = function(){
-  return fs.writeFileAsync( trackerFile, JSON.stringify(trackData) );
+  return fs.writeFileAsync( trackerFile, JSON.stringify(trackData, null, 4) );
 };
 
 function getUserName(){
